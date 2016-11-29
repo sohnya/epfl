@@ -87,16 +87,7 @@ class FunSetSuite extends FunSuite {
    * function "ignore" by "test".
    */
   test("singletonSet(1) contains 1") {
-
-    /**
-     * We create a new instance of the "TestSets" trait, this gives us access
-     * to the values "s1" to "s3".
-     */
     new TestSets {
-      /**
-       * The string argument of "assert" is a message that is printed in case
-       * the test fails. This helps identifying which assertion failed.
-       */
       assert(contains(s1, 1), "Singleton")
     }
   }
@@ -107,6 +98,63 @@ class FunSetSuite extends FunSuite {
       assert(contains(s, 1), "Union 1")
       assert(contains(s, 2), "Union 2")
       assert(!contains(s, 3), "Union 3")
+    }
+  }
+
+  test("difference only contains elements from original set") {
+    new TestSets {
+      val s = union(s1, s2)
+      val s_original = diff(s,s2)
+      assert(contains(s_original,1))
+      assert(!contains(s_original,2))
+    }
+  }
+
+  test("filter with x < 2"){
+      new TestSets{
+        val s = union(s1,s2)
+        val s_all = union(s,s3)
+        val s_filtered = filter(s,x=>x<2)
+        assert(contains(s_filtered,1))
+        assert(!contains(s_filtered,2))
+        assert(!contains(s_filtered,3))
+    }
+  }
+
+  test("forall returns true when set contains all elements in predicate") {
+    new TestSets{
+      val s = union(s1,s2)
+      assert(forall(s, x=> x>0))
+      assert(forall(s,x=>x<3))
+    }
+  }
+
+
+  test("exists on a set {1,2} returns true for 1 and 2, and false otherwise") {
+    new TestSets{
+      val s = union(s1,s2)
+      assert(exists(s, x=> x==1))
+      assert(exists(s, x=> x==2))
+      assert(!exists(s,x=> x<1 ))
+      assert(!exists(s,x=> x>2 ))
+    }
+  }
+
+  test("Map {1,3} with x^2 returns {1,9}"){
+    new TestSets{
+      val s= union(s1,s3)
+      val s_squared = map(s,x=>x*x)
+      assert(exists(s_squared,x=>x==1))
+      assert(exists(s_squared,x=>x==9))
+    }
+  }
+
+  test("Map {1,3} with 2x returns {2,6}"){
+    new TestSets{
+      val s= union(s1,s3)
+      val s_squared = map(s,x=>2*x)
+      assert(exists(s_squared,x=>x==2))
+      assert(exists(s_squared,x=>x==6))
     }
   }
 
