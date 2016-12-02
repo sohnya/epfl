@@ -38,23 +38,23 @@ abstract class TweetSet {
    * This method takes a predicate and returns a subset of all the elements
    * in the original set for which the predicate is true.
    *
-   * Question: Can we implment this method here, or should it remain abstract
+   * Question: Can we implement this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-    def filter(p: Tweet => Boolean): TweetSet = ???
+    def filter(p: Tweet => Boolean): TweetSet2 = filterAcc(p, new Empty)
   
   /**
-   * This is a helper method for `filter` that propagetes the accumulated tweets.
+   * This is a helper method for `filter` that propagates the accumulated tweets.
    */
-  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet
+  def filterAcc(p: Tweet => Boolean, acc: TweetSet2): TweetSet2
 
   /**
    * Returns a new `TweetSet` that is the union of `TweetSet`s `this` and `that`.
    *
-   * Question: Should we implment this method here, or should it remain abstract
+   * Question: Should we implement this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-    def union(that: TweetSet): TweetSet = ???
+    def union(that: TweetSet2): TweetSet2
   
   /**
    * Returns the tweet from this set which has the greatest retweet count.
@@ -62,10 +62,10 @@ abstract class TweetSet {
    * Calling `mostRetweeted` on an empty set should throw an exception of
    * type `java.util.NoSuchElementException`.
    *
-   * Question: Should we implment this method here, or should it remain abstract
+   * Question: Should we implement this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-    def mostRetweeted: Tweet = ???
+    def mostRetweeted: Tweet
   
   /**
    * Returns a list containing all tweets of this set, sorted by retweet count
@@ -73,10 +73,24 @@ abstract class TweetSet {
    * have the highest retweet count.
    *
    * Hint: the method `remove` on TweetSet will be very useful.
-   * Question: Should we implment this method here, or should it remain abstract
+   * Question: Should we implement this method here, or should it remain abstract
    * and be implemented in the subclasses?
+    *
+    *
    */
-    def descendingByRetweet: TweetList = ???
+
+  def descendingByRetweet: TweetList = {
+
+    if(isEmpty) Nil
+    else new Cons(mostRetweeted, (remove(mostRetweeted).descendingByRetweet))
+
+  }
+
+
+
+
+
+
   
   /**
    * The following methods are already implemented
@@ -88,12 +102,12 @@ abstract class TweetSet {
    *
    * If `this.contains(tweet)`, the current set is returned.
    */
-  def incl(tweet: Tweet): TweetSet
+  def incl(tweet: Tweet): TweetSet2
 
   /**
    * Returns a new `TweetSet` which excludes `tweet`.
    */
-  def remove(tweet: Tweet): TweetSet
+  def remove(tweet: Tweet): TweetSet2
 
   /**
    * Tests if `tweet` exists in this `TweetSet`.
@@ -104,45 +118,54 @@ abstract class TweetSet {
    * This method takes a function and applies it to every element in the set.
    */
   def foreach(f: Tweet => Unit): Unit
+
+  def isEmpty : Boolean
 }
 
-class Empty extends TweetSet {
-    def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = ???
-  
-  /**
-   * The following methods are already implemented
-   */
+class Empty extends TweetSet2 {
+
+  def filterAcc(p: Tweet => Boolean, acc: TweetSet2): TweetSet2 = acc
+
+  def union(that: TweetSet2): TweetSet2 = that
 
   def contains(tweet: Tweet): Boolean = false
 
-  def incl(tweet: Tweet): TweetSet = new NonEmpty(tweet, new Empty, new Empty)
+  def incl(tweet: Tweet): TweetSet2 = new NonEmpty(tweet, new Empty, new Empty)
 
-  def remove(tweet: Tweet): TweetSet = this
+  def remove(tweet: Tweet): TweetSet2 = this
 
   def foreach(f: Tweet => Unit): Unit = ()
+
+  def isEmpty = true
+
+  def mostRetweeted: Tweet = throw new NoSuchElementException
 }
 
-class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
+class NonEmpty(elem: Tweet, left: TweetSet2, right: TweetSet2) extends TweetSet2 {
 
-    def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = ???
-  
-    
-  /**
-   * The following methods are already implemented
-   */
+  def filterAcc(p: Tweet => Boolean, acc: TweetSet2): TweetSet2 = {
+    if(p(elem)) left filterAcc(p, right filterAcc(p, acc incl elem ))
+    else left filterAcc(p, right filterAcc(p, acc))
+  }
+
+  def union(that: TweetSet2) : TweetSet2 = {
+    //((left union right) union that) incl elem
+    filterAcc(x=>true,that)
+    //left union(right) union(that) incl(elem)
+  }
 
   def contains(x: Tweet): Boolean =
     if (x.text < elem.text) left.contains(x)
     else if (elem.text < x.text) right.contains(x)
     else true
 
-  def incl(x: Tweet): TweetSet = {
+  def incl(x: Tweet): TweetSet2 = {
     if (x.text < elem.text) new NonEmpty(elem, left.incl(x), right)
     else if (elem.text < x.text) new NonEmpty(elem, left, right.incl(x))
     else this
   }
 
-  def remove(tw: Tweet): TweetSet =
+  def remove(tw: Tweet): TweetSet2 =
     if (tw.text < elem.text) new NonEmpty(elem, left.remove(tw), right)
     else if (elem.text < tw.text) new NonEmpty(elem, left, right.remove(tw))
     else left.union(right)
@@ -152,6 +175,26 @@ class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
     left.foreach(f)
     right.foreach(f)
   }
+
+  def isEmpty : Boolean = false
+
+  // Return the most popular tweet of the TweetSet
+ /** def mostRetweeted: Tweet = {
+    if((left.isEmpty union right).isEmpty) elem
+    else if(elem.retweets > (left union right).mostRetweeted.retweets) elem
+    else (left union right).mostRetweeted
+  }*/
+
+ def mostRetweeted: Tweet = {
+   def MaxRet(Twit1: Tweet, Twit2: Tweet): Tweet = {
+     if (Twit1.retweets > Twit2.retweets) Twit1 else Twit2
+   }
+   if (left.isEmpty && right.isEmpty) elem
+   else if (right.isEmpty) MaxRet(left.mostRetweeted,elem)
+   else if (left.isEmpty) MaxRet(right.mostRetweeted,elem)
+   else MaxRet(left.mostRetweeted,MaxRet(left.mostRetweeted,elem))
+ }
+
 }
 
 trait TweetList {
@@ -180,17 +223,31 @@ object GoogleVsApple {
   val google = List("android", "Android", "galaxy", "Galaxy", "nexus", "Nexus")
   val apple = List("ios", "iOS", "iphone", "iPhone", "ipad", "iPad")
 
-    lazy val googleTweets: TweetSet = ???
-  lazy val appleTweets: TweetSet = ???
-  
+  val emptySet = new Empty
+  val a = emptySet.incl(new Tweet("a", "a android", 20))
+  val ab = a.incl(new Tweet("b", "b body", 20))
+  val abc = ab.incl(new Tweet("c", "c galaxy", 100))
+
+  lazy val allTweets = TweetReader.allTweets
+  //val allTweets = abc
+
+  lazy val googleTweets: TweetSet2 = allTweets.filter(x=> google.exists(y=>x.text.contains(y)))
+  lazy val appleTweets: TweetSet2 = allTweets.filter(x=> apple.exists(y=>x.text.contains(y)))
+
   /**
    * A list of all tweets mentioning a keyword from either apple or google,
    * sorted by the number of retweets.
    */
-     lazy val trending: TweetList = ???
+  lazy val trending: TweetList = (googleTweets union appleTweets).descendingByRetweet
+
   }
 
 object Main extends App {
   // Print the trending tweets
+
+  println("Hello world")
+
   GoogleVsApple.trending foreach println
+
+  println("Bye bye world")
 }
