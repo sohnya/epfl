@@ -29,8 +29,8 @@ object TweetReader {
     }
   }
 
-  def toTweetSet(l: List[Tweet]): TweetSet2 = {
-    l.foldLeft(new Empty: TweetSet2)(_.incl(_))
+  def toTweetSet(l: List[Tweet]): TweetSet = {
+    l.foldLeft(new Empty: TweetSet)(_.incl(_))
   }
 
   def unparseToData(tws: List[Tweet]): String = {
@@ -65,14 +65,14 @@ object TweetReader {
                  (sites(5) -> gadgetlabTweets),
                  (sites(6) -> mashableTweets))
 
-  val tweetSets: List[TweetSet2] = sources.map(tweets => toTweetSet(tweets))
+  val tweetSets: List[TweetSet] = sources.map(tweets => toTweetSet(tweets))
   
-  private val siteTweetSetMap: Map[String, TweetSet2] =
+  private val siteTweetSetMap: Map[String, TweetSet] =
     Map() ++ (sites zip tweetSets)
 
-  private def unionOfAllTweetSets(curSets: List[TweetSet2], acc: TweetSet2): TweetSet2 =
+  private def unionOfAllTweetSets(curSets: List[TweetSet], acc: TweetSet): TweetSet =
     if (curSets.isEmpty) acc
     else unionOfAllTweetSets(curSets.tail, acc.union(curSets.head))
 
-  val allTweets: TweetSet2 = unionOfAllTweetSets(tweetSets, new Empty)
+  val allTweets: TweetSet = unionOfAllTweetSets(tweetSets, new Empty)
 }
